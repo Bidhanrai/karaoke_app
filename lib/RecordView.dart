@@ -1,3 +1,4 @@
+import 'package:audioplayers/audioplayers.dart';
 import 'package:flutter/material.dart';
 import 'package:camera/camera.dart';
 
@@ -9,7 +10,6 @@ class RecordView extends StatefulWidget {
 }
 
 class _RecordViewState extends State<RecordView> {
-
   // @override
   // void didChangeAppLifecycleState(AppLifecycleState state) {
   //   // App state changed before we got the chance to initialize.
@@ -28,10 +28,49 @@ class _RecordViewState extends State<RecordView> {
 
   CameraController? controller;
 
+  AudioPlayer audioPlayer = AudioPlayer();
+  AudioCache audioCache = AudioCache();
+  Uri? uri;
+  final String assetFilePath = "LaxedSirenBeat.mp3";
+  int maxDuration = 00;
+  int currentPosition = 00;
+
   @override
   void initState() {
     super.initState();
     setUpCamera();
+    _loadUrl();
+  }
+
+  _loadUrl() async{
+    audioCache = AudioCache(fixedPlayer: audioPlayer);
+    audioPlayer.setUrl(assetFilePath, isLocal: true);
+    await audioCache.load(assetFilePath);
+
+    audioPlayer.onDurationChanged.listen((Duration duration) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        maxDuration = duration.inSeconds;
+      });
+    });
+
+    audioPlayer.onPlayerStateChanged.listen((PlayerState event) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {});
+    });
+
+    audioPlayer.onAudioPositionChanged.listen((Duration duration) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        currentPosition = duration.inSeconds;
+      });
+    });
   }
 
   setUpCamera() async{
@@ -48,6 +87,8 @@ class _RecordViewState extends State<RecordView> {
   @override
   void dispose() {
     controller?.dispose();
+    audioPlayer.dispose();
+    audioCache.clearAll();
     super.dispose();
   }
 
@@ -99,7 +140,7 @@ class _RecordViewState extends State<RecordView> {
           ),
           Expanded(
             child: LinearProgressIndicator(
-              value: 0.3,
+              value: maxDuration==0?0:(currentPosition/maxDuration).toDouble(),
               color: Colors.pink,
               backgroundColor: Colors.white,
               minHeight: 5,
@@ -142,8 +183,20 @@ class _RecordViewState extends State<RecordView> {
             ),
           ),
           IconButton(
-            onPressed: () {},
-            icon: Icon(Icons.not_started, size: 40, color: Colors.pink,),
+            onPressed: () {
+              if(audioPlayer.state == PlayerState.PLAYING) {
+                audioPlayer.stop();
+              } else {
+                audioCache.play(assetFilePath, volume: 0.05);
+              }
+            },
+            icon: Icon(
+              audioPlayer.state == PlayerState.PLAYING
+                  ? Icons.pause_circle_filled
+                  : Icons.not_started,
+              size: 40,
+              color: Colors.pink,
+            ),
           ),
 
           IconButton(

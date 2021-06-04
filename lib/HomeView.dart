@@ -2,6 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:karaoke_app/RecordView.dart';
 import 'package:karaoke_app/RecordedFileView.dart';
+import 'package:audioplayers/audioplayers.dart';
 
 class HomView extends StatefulWidget {
   const HomView() : super();
@@ -12,6 +13,48 @@ class HomView extends StatefulWidget {
 
 class _HomViewState extends State<HomView> {
 
+  AudioPlayer audioPlayer = AudioPlayer();
+  AudioCache audioCache = AudioCache();
+  Uri? uri;
+  final String assetFilePath = "LaxedSirenBeat.mp3";
+  int maxDuration = 00;
+  int currentPosition = 00;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUrl();
+  }
+
+  _loadUrl() async{
+    audioCache = AudioCache(fixedPlayer: audioPlayer);
+    // audioPlayer.setVolume(0.1);
+    audioPlayer.setUrl(assetFilePath, isLocal: true);
+    await audioCache.load(assetFilePath);
+
+    audioPlayer.onDurationChanged.listen((Duration duration) {
+      setState(() {
+        maxDuration = duration.inSeconds;
+      });
+    });
+
+    audioPlayer.onPlayerStateChanged.listen((PlayerState event) {
+      setState(() {});
+    });
+
+    audioPlayer.onAudioPositionChanged.listen((Duration duration) {
+      setState(() {
+        currentPosition = duration.inSeconds;
+      });
+    });
+  }
+
+  @override
+  void dispose() {
+    audioPlayer.dispose();
+    audioCache.clearAll();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -28,7 +71,7 @@ class _HomViewState extends State<HomView> {
         ],
       ),
       body: ListView.separated(
-        itemCount: 2,
+        itemCount: 1,
         separatorBuilder: (context, index)=>Divider(),
         itemBuilder: (context, index) {
           return Padding(
@@ -60,6 +103,7 @@ class _HomViewState extends State<HomView> {
         ),
         TextButton(
           onPressed: () {
+            audioPlayer.stop();
             Navigator.push(context, MaterialPageRoute(builder: (context)=>RecordView()));
           },
           child: Text(
@@ -79,17 +123,40 @@ class _HomViewState extends State<HomView> {
       mainAxisAlignment: MainAxisAlignment.start,
       children: [
         Expanded(
-          child: LinearProgressIndicator(
-            value: 0.3,
-            color: Colors.pink,
-            backgroundColor: Colors.pink.shade100,
-            minHeight: 5,
+          child: Column(
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text("00:$currentPosition"),
+                  Text("00:$maxDuration"),
+                ],
+              ),
+              LinearProgressIndicator(
+                value: maxDuration==0?0:(currentPosition/maxDuration).toDouble(),
+                color: Colors.pink,
+                backgroundColor: Colors.pink.shade100,
+                minHeight: 5,
+              ),
+            ],
           ),
         ),
         IconButton(
-          onPressed: () {},
+          onPressed: () {
+            if(audioPlayer.state == PlayerState.PLAYING) {
+              audioPlayer.pause();
+            } else if(audioPlayer.state == PlayerState.PAUSED) {
+              audioPlayer.resume();
+            } else {
+              audioCache.play(assetFilePath);
+            }
+          },
           icon: Icon(
-            Icons.play_arrow,
+            audioPlayer.state == PlayerState.PAUSED || audioPlayer.state == PlayerState.COMPLETED
+                ? Icons.play_arrow
+                : audioPlayer.state == PlayerState.STOPPED
+                    ? Icons.play_arrow
+                    : Icons.pause
           ),
         ),
       ],
