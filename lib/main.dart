@@ -1,13 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:karaoke_app/HomeView.dart';
+import 'package:karaoke_app/ServiceProvider.dart';
+import 'package:karaoke_app/View/HomeView.dart';
 
 void main() {
   WidgetsFlutterBinding.ensureInitialized();
+  setUp();
   runApp(MyApp());
 }
 
 class MyApp extends StatelessWidget {
-  // This widget is the root of your application.
   @override
   Widget build(BuildContext context) {
     return MaterialApp(

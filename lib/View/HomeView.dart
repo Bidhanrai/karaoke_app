@@ -1,7 +1,8 @@
-
 import 'package:flutter/material.dart';
-import 'package:karaoke_app/RecordView.dart';
-import 'package:karaoke_app/RecordedFileView.dart';
+import 'package:karaoke_app/Service/AudioPlayerService.dart';
+import 'package:karaoke_app/ServiceProvider.dart';
+import 'package:karaoke_app/View/RecordView.dart';
+import 'package:karaoke_app/View/RecordedFileView.dart';
 import 'package:audioplayers/audioplayers.dart';
 
 class HomView extends StatefulWidget {
@@ -13,46 +14,40 @@ class HomView extends StatefulWidget {
 
 class _HomViewState extends State<HomView> {
 
-  AudioPlayer audioPlayer = AudioPlayer();
-  AudioCache audioCache = AudioCache();
-  Uri? uri;
   final String assetFilePath = "LaxedSirenBeat.mp3";
-  int maxDuration = 00;
-  int currentPosition = 00;
+
+  var audioPlayerService = getIt<AudioPlayerService>();
 
   @override
   void initState() {
     super.initState();
-    _loadUrl();
+    _setUpListeners();
   }
 
-  _loadUrl() async{
-    audioCache = AudioCache(fixedPlayer: audioPlayer);
-    // audioPlayer.setVolume(0.1);
-    audioPlayer.setUrl(assetFilePath, isLocal: true);
-    await audioCache.load(assetFilePath);
+  _setUpListeners() async{
+    await audioPlayerService.loadUrl(assetFilePath);
 
-    audioPlayer.onDurationChanged.listen((Duration duration) {
+    audioPlayerService.audioPlayer.onDurationChanged.listen((Duration duration) {
       setState(() {
-        maxDuration = duration.inSeconds;
+        audioPlayerService.maxDuration = duration.inSeconds;
       });
     });
 
-    audioPlayer.onPlayerStateChanged.listen((PlayerState event) {
+    audioPlayerService.audioPlayer.onPlayerStateChanged.listen((PlayerState event) {
       setState(() {});
     });
 
-    audioPlayer.onAudioPositionChanged.listen((Duration duration) {
+    audioPlayerService.audioPlayer.onAudioPositionChanged.listen((Duration duration) {
       setState(() {
-        currentPosition = duration.inSeconds;
+        audioPlayerService.currentPosition = duration.inSeconds;
       });
     });
   }
 
   @override
   void dispose() {
-    audioPlayer.dispose();
-    audioCache.clearAll();
+    audioPlayerService.audioPlayer.dispose();
+    audioPlayerService.audioCache.clearAll();
     super.dispose();
   }
 
@@ -95,7 +90,7 @@ class _HomViewState extends State<HomView> {
       children: [
         Expanded(
           child: Text(
-            "Ankha maa aune sapani kaile po pura hunxa ni ankha ",
+            "Laxed Siren Beat",
             maxLines: 2,
             overflow: TextOverflow.clip,
             style: TextStyle(fontWeight: FontWeight.w500),
@@ -103,7 +98,7 @@ class _HomViewState extends State<HomView> {
         ),
         TextButton(
           onPressed: () {
-            audioPlayer.stop();
+            audioPlayerService.audioPlayer.stop();
             Navigator.push(context, MaterialPageRoute(builder: (context)=>RecordView()));
           },
           child: Text(
@@ -128,12 +123,12 @@ class _HomViewState extends State<HomView> {
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  Text("00:$currentPosition"),
-                  Text("00:$maxDuration"),
+                  Text("00:${audioPlayerService.currentPosition}"),
+                  Text("00:${audioPlayerService.maxDuration}"),
                 ],
               ),
               LinearProgressIndicator(
-                value: maxDuration==0?0:(currentPosition/maxDuration).toDouble(),
+                value: audioPlayerService.maxDuration==0?0:(audioPlayerService.currentPosition/audioPlayerService.maxDuration).toDouble(),
                 color: Colors.pink,
                 backgroundColor: Colors.pink.shade100,
                 minHeight: 5,
@@ -143,18 +138,18 @@ class _HomViewState extends State<HomView> {
         ),
         IconButton(
           onPressed: () {
-            if(audioPlayer.state == PlayerState.PLAYING) {
-              audioPlayer.pause();
-            } else if(audioPlayer.state == PlayerState.PAUSED) {
-              audioPlayer.resume();
+            if(audioPlayerService.audioPlayer.state == PlayerState.PLAYING) {
+              audioPlayerService.audioPlayer.pause();
+            } else if(audioPlayerService.audioPlayer.state == PlayerState.PAUSED) {
+              audioPlayerService.audioPlayer.resume();
             } else {
-              audioCache.play(assetFilePath);
+              audioPlayerService.audioCache.play(assetFilePath);
             }
           },
           icon: Icon(
-            audioPlayer.state == PlayerState.PAUSED || audioPlayer.state == PlayerState.COMPLETED
+              audioPlayerService.audioPlayer.state == PlayerState.PAUSED || audioPlayerService.audioPlayer.state == PlayerState.COMPLETED
                 ? Icons.play_arrow
-                : audioPlayer.state == PlayerState.STOPPED
+                : audioPlayerService.audioPlayer.state == PlayerState.STOPPED
                     ? Icons.play_arrow
                     : Icons.pause
           ),
